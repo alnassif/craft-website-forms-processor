@@ -2,7 +2,7 @@
 
 Craft CMS 5 CP plugin — zero-code form configuration. Add form types in the CP, no deployment required.
 
-Depends on [craft-pdf-generator](https://github.com/alnassif/craft-website-pdf-generator) and [craft-site-processor](https://github.com/alnassif/craft-website-site-processor).
+Depends on [craft-website-pdf-generator](https://github.com/alnassif/craft-website-pdf-generator) and [craft-website-site-processor](https://github.com/alnassif/craft-website-site-processor).
 
 ## CP Sections
 
@@ -32,7 +32,7 @@ Depends on [craft-pdf-generator](https://github.com/alnassif/craft-website-pdf-g
 
 ```json
 "repositories": [
-    { "type": "vcs", "url": "https://github.com/alnassif/craft-forms-processor" }
+    { "type": "vcs", "url": "https://github.com/alnassif/craft-website-forms-processor" }
 ],
 "require": {
     "slateos/craft-forms-processor": "dev-main"
