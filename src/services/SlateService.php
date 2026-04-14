@@ -25,9 +25,9 @@ class SlateService extends Component
             return null;
         }
 
-        $payload = array_merge($data, [
+        $payload = array_merge($this->flattenForSlate($data), [
             '_source'  => $source,
-            '_contact' => $contact,
+            '_contact' => json_encode($contact),
         ]);
 
         $response = $this->post($endpoint, $apiKey, $payload);
@@ -82,6 +82,20 @@ class SlateService extends Component
         ]);
 
         return $result !== null;
+    }
+
+    /**
+     * Flatten a data array for Slate: any nested array/object values are
+     * JSON-encoded to a string so Slate's FormsApiController receives only
+     * scalar key-value pairs.
+     */
+    private function flattenForSlate(array $data): array
+    {
+        $flat = [];
+        foreach ($data as $key => $value) {
+            $flat[$key] = is_array($value) ? json_encode($value) : $value;
+        }
+        return $flat;
     }
 
     /**
