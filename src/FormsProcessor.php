@@ -5,8 +5,10 @@ namespace slateos\formsprocessor;
 use Craft;
 use craft\base\Plugin;
 use craft\events\RegisterCpNavItemsEvent;
+use craft\events\RegisterTemplateRootsEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\web\UrlManager;
+use craft\web\View;
 use craft\web\twig\variables\Cp;
 use slateos\formsprocessor\models\Settings;
 use slateos\formsprocessor\services\FormTypeService;
@@ -49,6 +51,15 @@ class FormsProcessor extends Plugin
             'submissions'  => SubmissionService::class,
             'slate'        => SlateService::class,
         ]);
+
+        // Register CP template root so Craft can find templates/forms-processor/**
+        Event::on(
+            View::class,
+            View::EVENT_REGISTER_CP_TEMPLATE_ROOTS,
+            function (RegisterTemplateRootsEvent $event) {
+                $event->roots['forms-processor'] = __DIR__ . '/../templates/forms-processor';
+            }
+        );
 
         // CP nav
         Event::on(
