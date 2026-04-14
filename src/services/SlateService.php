@@ -66,8 +66,8 @@ class SlateService extends Component
         $attachEndpoint = preg_replace('/\/submit$/', '/attach', $endpoint);
 
         $result = $this->post($attachEndpoint, $apiKey, [
-            'submissionId' => $submissionId,
-            'pdfUrl'       => $pdfUrl,
+            '_submissionId' => $submissionId,
+            'pdfUrl'        => $pdfUrl,
         ]);
 
         return $result !== null;
