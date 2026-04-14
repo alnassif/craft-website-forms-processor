@@ -39,6 +39,7 @@ class ProcessEmailJob extends BaseJob
     public string $slateEndpoint   = '';
     public string $slateApiKey     = '';
     public string $submissionId    = '';
+    public string $emailSubject    = '';
 
     // ── Submission tracking ───────────────────────────────────────────────────
 
@@ -103,7 +104,8 @@ class ProcessEmailJob extends BaseJob
                 $this->slateApiKey,
                 $this->submissionId,
                 $emailSent,
-                $emailAddress
+                $emailAddress,
+                $this->emailSubject
             );
         }
 

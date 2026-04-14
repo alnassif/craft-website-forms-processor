@@ -159,12 +159,20 @@ class ProcessController extends Controller
         $submissionId = '';
 
         if ($formType->slateEndpoint && $formType->slateApiKey) {
+            // _title: use caller-supplied value, otherwise build a generic fallback
+            $slateTitle = $data['_title'] ?? ($name . ' — ' . $formType->name);
+
+            // _url: use caller-supplied value, otherwise the HTTP referer
+            $slateUrl = $data['_url'] ?? (Craft::$app->getRequest()->getReferrer() ?? '');
+
             $submissionId = FormsProcessor::$plugin->slate->submit(
                 $formType->slateEndpoint,
                 $formType->slateApiKey,
                 $formType->slateSource,
                 $contact,
-                $data
+                $data,
+                $slateTitle,
+                $slateUrl
             ) ?? '';
         }
 
@@ -222,6 +230,7 @@ class ProcessController extends Controller
                 'slateApiKey'         => $formType->slateApiKey,
                 'submissionId'        => $submissionId,
                 'submissionRecordId'  => $submissionRecordId,
+                'emailSubject'        => $subject,
             ]));
         } catch (\Exception $e) {
             Craft::error('Failed to queue ProcessEmailJob: ' . $e->getMessage(), __METHOD__);

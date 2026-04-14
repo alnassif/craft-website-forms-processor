@@ -12,23 +12,38 @@ use yii\base\Component;
  *   POST /slate-forms/submit   — submit form data, returns submissionId
  *   POST /slate-forms/attach   — attach a PDF URL to an existing submission
  *   POST /slate-forms/notify   — report email send outcome back to Slate CP
+ *
+ * Payload format (v2):
+ *   Nested arrays and objects are sent as rich { label, type, value } fields.
+ *   - Associative arrays  → type: "object"
+ *   - Sequential arrays   → type: "repeater"
+ *   - Scalars             → passed through as-is (Slate auto-detects type/label)
+ *   - _reserved keys      → passed through unchanged
  */
 class SlateService extends Component
 {
     /**
      * Submit form data to Slate and return the submissionId.
+     *
+     * @param string $title  Human-readable title shown in Slate CP (optional)
+     * @param string $url    Source page URL (optional)
+     *
      * Returns null (and logs) on failure — processing continues without a submissionId.
      */
-    public function submit(string $endpoint, string $apiKey, string $source, array $contact, array $data): ?string
-    {
+    public function submit(
+        string $endpoint,
+        string $apiKey,
+        string $source,
+        array  $contact,
+        array  $data,
+        string $title = '',
+        string $url   = ''
+    ): ?string {
         if (empty($endpoint) || empty($apiKey)) {
             return null;
         }
 
-        $payload = array_merge($this->flattenForSlate($data), [
-            '_source'  => $source,
-            '_contact' => json_encode($contact),
-        ]);
+        $payload = $this->buildSlatePayload($source, $contact, $data, $title, $url);
 
         $response = $this->post($endpoint, $apiKey, $payload);
 
@@ -48,7 +63,6 @@ class SlateService extends Component
             return false;
         }
 
-        // Derive attach URL from submit URL: replace /submit with /attach
         $attachEndpoint = preg_replace('/\/submit$/', '/attach', $endpoint);
 
         $result = $this->post($attachEndpoint, $apiKey, [
@@ -63,40 +77,99 @@ class SlateService extends Component
      * Notify Slate of the email send outcome.
      * Called from ProcessEmailJob after the email is sent.
      */
-    public function notify(string $endpoint, string $apiKey, string $submissionId, bool $emailSent, string $emailAddress = ''): bool
-    {
+    public function notify(
+        string $endpoint,
+        string $apiKey,
+        string $submissionId,
+        bool   $emailSent,
+        string $emailAddress = '',
+        string $subject      = ''
+    ): bool {
         if (empty($endpoint) || empty($apiKey) || empty($submissionId)) {
             return false;
         }
 
-        // Derive notify URL from submit URL: replace /submit with /notify
         $notifyEndpoint = preg_replace('/\/submit$/', '/notify', $endpoint);
 
-        $result = $this->post($notifyEndpoint, $apiKey, [
-            '_notify' => [
-                'submissionId' => $submissionId,
-                'emailSent'    => $emailSent,
-                'emailAddress' => $emailAddress,
-                'timestamp'    => date('c'),
-            ],
-        ]);
+        $notify = [
+            'submissionId' => $submissionId,
+            'emailSent'    => $emailSent,
+            'emailAddress' => $emailAddress,
+            'timestamp'    => date('c'),
+        ];
+
+        if ($subject !== '') {
+            $notify['subject'] = $subject;
+        }
+
+        $result = $this->post($notifyEndpoint, $apiKey, ['_notify' => $notify]);
 
         return $result !== null;
     }
 
+    // ── Payload builder ───────────────────────────────────────────────────────
+
     /**
-     * Flatten a data array for Slate: any nested array/object values are
-     * JSON-encoded to a string so Slate's FormsApiController receives only
-     * scalar key-value pairs.
+     * Build the rich Slate v2 payload.
+     *
+     * - Reserved underscore keys (_source, _title, _url, etc.) pass through as-is.
+     * - contact is sent both as top-level name/email scalars (for CP search) and
+     *   as a rich "object" field with all details.
+     * - Each data value is wrapped in { type, value } when it is an array.
+     *   Sequential arrays  → type "repeater"
+     *   Associative arrays → type "object"
+     *   Scalars            → passed through unchanged (Slate auto-detects type/label).
      */
-    private function flattenForSlate(array $data): array
-    {
-        $flat = [];
-        foreach ($data as $key => $value) {
-            $flat[$key] = is_array($value) ? json_encode($value) : $value;
+    private function buildSlatePayload(
+        string $source,
+        array  $contact,
+        array  $data,
+        string $title,
+        string $url
+    ): array {
+        $payload = ['_source' => $source];
+
+        if ($title !== '') {
+            $payload['_title'] = $title;
         }
-        return $flat;
+
+        if ($url !== '') {
+            $payload['_url'] = $url;
+        }
+
+        // Top-level name + email for Slate CP quick search
+        if (!empty($contact['name']))  { $payload['name']  = $contact['name']; }
+        if (!empty($contact['email'])) { $payload['email'] = $contact['email']; }
+
+        // Full contact as a rich object
+        if (!empty($contact)) {
+            $payload['contact'] = [
+                'label' => 'Contact Details',
+                'type'  => 'object',
+                'value' => $contact,
+            ];
+        }
+
+        // Data fields
+        foreach ($data as $key => $value) {
+            // Reserved keys pass through unchanged
+            if (str_starts_with((string) $key, '_')) {
+                $payload[$key] = $value;
+                continue;
+            }
+
+            if (is_array($value)) {
+                $type = array_is_list($value) ? 'repeater' : 'object';
+                $payload[$key] = ['type' => $type, 'value' => $value];
+            } else {
+                $payload[$key] = $value;
+            }
+        }
+
+        return $payload;
     }
+
+    // ── HTTP ──────────────────────────────────────────────────────────────────
 
     /**
      * POST JSON to a Slate endpoint with Bearer auth.
@@ -113,13 +186,13 @@ class SlateService extends Component
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ],
-                'json'            => $payload,
-                'http_errors'     => false,
+                'json'        => $payload,
+                'http_errors' => false,
             ]);
 
             $statusCode = $response->getStatusCode();
-            $body = (string) $response->getBody();
-            $decoded = json_decode($body, true);
+            $body       = (string) $response->getBody();
+            $decoded    = json_decode($body, true);
 
             if ($statusCode >= 200 && $statusCode < 300) {
                 return $decoded ?? [];
