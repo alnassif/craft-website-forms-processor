@@ -59,11 +59,11 @@ class FormTypeService extends Component
         $record->pdfTemplateId     = $model->pdfTemplateId;
         $record->emailTemplatePath = $model->emailTemplatePath;
         $record->emailSubject      = $model->emailSubject;
-        $record->emailBody         = $model->emailBody;
-        $record->bccOverride       = $model->bccOverride;
+        $record->emailBody         = $model->emailBody  ?? '';
+        $record->bccOverride       = $model->bccOverride ?? '';
         $record->rateLimitMax      = $model->rateLimitMax;
         $record->rateLimitWindow   = $model->rateLimitWindow;
-        $record->fieldsMap         = $model->fieldsMap;
+        $record->fieldsMap         = $model->fieldsMap ?: '{}';
         $record->enabled           = $model->enabled;
 
         if (!$record->save()) {

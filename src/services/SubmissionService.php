@@ -26,7 +26,7 @@ class SubmissionService extends Component
         $record->contactName       = $data['contactName'] ?? '';
         $record->contactEmail      = $data['contactEmail'] ?? '';
         $record->contactPhone      = $data['contactPhone'] ?? '';
-        $record->payload           = json_encode($data['payload'] ?? []);
+        $record->payload           = json_encode($data['payload'] ?? []) ?: '{}';
         $record->slateSubmissionId = $data['slateSubmissionId'] ?? '';
         $record->status            = $data['status'] ?? 'pending';
         $record->save();

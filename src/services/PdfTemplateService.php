@@ -53,12 +53,12 @@ class PdfTemplateService extends Component
             : new PdfTemplateRecord();
 
         $record->name       = $model->name;
-        $record->bodyTwig   = $model->bodyTwig;
-        $record->headerTwig = $model->headerTwig;
-        $record->footerTwig = $model->footerTwig;
-        $record->sampleData = $model->sampleData;
-        $record->paperSize  = $model->paperSize;
-        $record->margins    = json_encode($model->margins);
+        $record->bodyTwig   = $model->bodyTwig   ?? '';
+        $record->headerTwig = $model->headerTwig ?? '';
+        $record->footerTwig = $model->footerTwig ?? '';
+        $record->sampleData = $model->sampleData ?: '{}';
+        $record->paperSize  = $model->paperSize  ?: 'A4';
+        $record->margins    = json_encode($model->margins ?: [10, 10, 10, 10]);
 
         if (!$record->save()) {
             $model->addErrors($record->getErrors());
