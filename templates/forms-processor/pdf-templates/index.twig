@@ -1,0 +1,51 @@
+{% extends 'forms-processor/_layouts/cp' %}
+
+{% set title = 'PDF Templates' %}
+{% set selectedSubnavItem = 'pdf-templates' %}
+
+{% block actionButton %}
+<a href="{{ url('forms-processor/pdf-templates/new') }}" class="btn submit add icon">
+    {{ 'New PDF Template'|t('forms-processor') }}
+</a>
+{% endblock %}
+
+{% block content %}
+{% if templates|length %}
+<table class="data fullwidth collapsible">
+    <thead>
+        <tr>
+            <th>{{ 'Name'|t('forms-processor') }}</th>
+            <th>{{ 'Paper Size'|t('forms-processor') }}</th>
+            <th>{{ 'Margins'|t('forms-processor') }}</th>
+            <th>{{ 'Updated'|t('forms-processor') }}</th>
+            <th class="thin"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tpl in templates %}
+        <tr>
+            <td>
+                <a href="{{ url('forms-processor/pdf-templates/' ~ tpl.id) }}">
+                    <strong>{{ tpl.name }}</strong>
+                </a>
+            </td>
+            <td>{{ tpl.paperSize }}</td>
+            <td><code>{{ tpl.margins|join(', ') }}</code></td>
+            <td>{{ tpl.dateUpdated ? tpl.dateUpdated|date('d M Y') : '—' }}</td>
+            <td class="thin">
+                <a class="delete icon" title="{{ 'Delete'|t('app') }}"
+                   href="#"
+                   data-id="{{ tpl.id }}"
+                   data-confirm="{{ 'Are you sure you want to delete this template? Form types using it will lose their PDF template.'|t('forms-processor') }}"
+                   data-action="forms-processor/pdf-templates/delete"></a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="zilch">{{ 'No PDF templates yet.'|t('forms-processor') }}
+    <a href="{{ url('forms-processor/pdf-templates/new') }}">{{ 'Create one'|t('forms-processor') }}</a>.
+</p>
+{% endif %}
+{% endblock %}

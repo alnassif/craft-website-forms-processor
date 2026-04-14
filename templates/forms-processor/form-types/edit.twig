@@ -1,0 +1,172 @@
+{% extends 'forms-processor/_layouts/cp' %}
+
+{% set title = isNew ? 'New Form Type'|t('forms-processor') : formType.name %}
+{% set selectedSubnavItem = 'form-types' %}
+{% set fullPageForm = true %}
+
+{% block actionButton %}
+<div class="btngroup submit">
+    <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
+</div>
+{% endblock %}
+
+{% block content %}
+<input type="hidden" name="action" value="forms-processor/form-types/save">
+{% if not isNew %}<input type="hidden" name="id" value="{{ formType.id }}">{% endif %}
+{{ redirectInput('forms-processor/form-types/' ~ (isNew ? 'new' : formType.id)) }}
+
+{# ── Basics ──────────────────────────────────────────────────────────────── #}
+<div class="field {% if formType.hasErrors('name') %}has-errors{% endif %}">
+    <div class="heading">
+        <label for="name" class="required">{{ 'Name'|t('forms-processor') }}</label>
+    </div>
+    <div class="input ltr">
+        <input id="name" type="text" name="name" class="text fullwidth"
+               value="{{ formType.name }}" autofocus
+               data-default-value-prefix=""
+               data-slug-target="#handle">
+    </div>
+    {{ formType.getFirstError('name')|spaceless ? ('<p class="error">' ~ formType.getFirstError('name') ~ '</p>')|raw }}
+</div>
+
+<div class="field {% if formType.hasErrors('handle') %}has-errors{% endif %}">
+    <div class="heading">
+        <label for="handle" class="required">{{ 'Handle'|t('forms-processor') }}</label>
+    </div>
+    <div class="input ltr">
+        <input id="handle" type="text" name="handle" class="text code fullwidth"
+               value="{{ formType.handle }}" placeholder="tile-calculator">
+    </div>
+    <div class="instructions"><p>{{ 'Used in front-end endpoint URLs. Lowercase, hyphens only.'|t('forms-processor') }}</p></div>
+    {{ formType.getFirstError('handle')|spaceless ? ('<p class="error">' ~ formType.getFirstError('handle') ~ '</p>')|raw }}
+</div>
+
+<div class="field">
+    <div class="heading"><label for="enabled">{{ 'Enabled'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input type="hidden" name="enabled" value="0">
+        <input id="enabled" type="checkbox" name="enabled" value="1" {{ formType.enabled ? 'checked' }}>
+    </div>
+</div>
+
+<hr>
+
+{# ── Slate CMS Integration ────────────────────────────────────────────────── #}
+<h2>{{ 'Slate CMS Integration'|t('forms-processor') }}</h2>
+<p class="light">{{ 'Leave blank to disable Slate submission for this form type.'|t('forms-processor') }}</p>
+
+<div class="field">
+    <div class="heading"><label for="slateEndpoint">{{ 'Slate API Endpoint'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="slateEndpoint" type="url" name="slateEndpoint" class="text fullwidth"
+               value="{{ formType.slateEndpoint }}" placeholder="https://slateos.yourcrm.com/slate-forms/submit">
+    </div>
+</div>
+
+<div class="field">
+    <div class="heading"><label for="slateApiKey">{{ 'Slate API Key'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="slateApiKey" type="text" name="slateApiKey" class="text fullwidth code"
+               value="{{ formType.slateApiKey }}" placeholder="slk_...">
+    </div>
+</div>
+
+<div class="field">
+    <div class="heading"><label for="slateSource">{{ 'Slate Channel Source'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="slateSource" type="text" name="slateSource" class="text fullwidth"
+               value="{{ formType.slateSource }}" placeholder="tile-calculations">
+    </div>
+    <div class="instructions"><p>{{ 'Value sent as <code>_source</code> in the Slate payload.'|t('forms-processor')|raw }}</p></div>
+</div>
+
+<hr>
+
+{# ── Templates ────────────────────────────────────────────────────────────── #}
+<h2>{{ 'Templates'|t('forms-processor') }}</h2>
+
+<div class="field">
+    <div class="heading"><label for="pdfTemplateId">{{ 'PDF Template'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <div class="select">
+            <select id="pdfTemplateId" name="pdfTemplateId">
+                {% for value, label in pdfTemplateOptions %}
+                    <option value="{{ value }}" {{ formType.pdfTemplateId == value ? 'selected' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="instructions"><p>
+        {{ 'Manage templates in'|t('forms-processor') }}
+        <a href="{{ url('forms-processor/pdf-templates') }}">{{ 'PDF Templates'|t('forms-processor') }}</a>.
+    </p></div>
+</div>
+
+<div class="field">
+    <div class="heading"><label for="emailTemplatePath">{{ 'Email Template Path'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="emailTemplatePath" type="text" name="emailTemplatePath" class="text fullwidth code"
+               value="{{ formType.emailTemplatePath }}" placeholder="_email/tile-estimate">
+    </div>
+    <div class="instructions"><p>{{ 'Twig template path relative to your project templates directory.'|t('forms-processor') }}</p></div>
+</div>
+
+<hr>
+
+{# ── Email ────────────────────────────────────────────────────────────────── #}
+<h2>{{ 'Email'|t('forms-processor') }}</h2>
+
+<div class="field">
+    <div class="heading"><label for="emailSubject">{{ 'Email Subject'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="emailSubject" type="text" name="emailSubject" class="text fullwidth"
+               value="{{ formType.emailSubject }}" placeholder="Your Estimate — {{ siteName }}">
+    </div>
+    <div class="instructions"><p>{{ 'Twig-capable. Variables: <code>{{ siteName }}</code>, <code>{{ contact.name }}</code>, etc.'|t('forms-processor')|raw }}</p></div>
+</div>
+
+<div class="field">
+    <div class="heading"><label for="bccOverride">{{ 'BCC Override'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="bccOverride" type="email" name="bccOverride" class="text fullwidth"
+               value="{{ formType.bccOverride }}" placeholder="Leave blank to use global BCC">
+    </div>
+</div>
+
+<hr>
+
+{# ── Rate Limiting Overrides ──────────────────────────────────────────────── #}
+<h2>{{ 'Rate Limiting'|t('forms-processor') }}</h2>
+<p class="light">{{ 'Leave blank to use global defaults.'|t('forms-processor') }}</p>
+
+<div class="field">
+    <div class="heading"><label for="rateLimitMax">{{ 'Max Submissions Override'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="rateLimitMax" type="number" name="rateLimitMax" class="text"
+               value="{{ formType.rateLimitMax }}" min="1" max="1000" style="width:100px" placeholder="—">
+    </div>
+</div>
+
+<div class="field">
+    <div class="heading"><label for="rateLimitWindow">{{ 'Window Override (seconds)'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="rateLimitWindow" type="number" name="rateLimitWindow" class="text"
+               value="{{ formType.rateLimitWindow }}" min="60" style="width:120px" placeholder="—">
+    </div>
+</div>
+
+<hr>
+
+{# ── Fields Map ───────────────────────────────────────────────────────────── #}
+<h2>{{ 'Fields Mapping'|t('forms-processor') }}</h2>
+<p class="light">{{ 'JSON object mapping form field names to CRM field names. Used for Slate payload construction.'|t('forms-processor') }}</p>
+
+<div class="field">
+    <div class="heading"><label for="fieldsMap">{{ 'Fields Map (JSON)'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <textarea id="fieldsMap" name="fieldsMap" class="text code fullwidth" rows="8"
+                  style="font-family:monospace;font-size:12px">{{ formType.fieldsMap }}</textarea>
+    </div>
+    <div class="instructions"><p>{{ 'Example: <code>{"firstName": "first_name", "email": "email_address"}</code>'|t('forms-processor')|raw }}</p></div>
+</div>
+{% endblock %}

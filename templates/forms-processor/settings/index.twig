@@ -1,0 +1,127 @@
+{% extends 'forms-processor/_layouts/cp' %}
+
+{% set title = 'Settings' %}
+{% set selectedSubnavItem = 'settings' %}
+{% set fullPageForm = true %}
+
+{% block actionButton %}
+<div class="btngroup submit">
+    <input type="submit" class="btn submit" value="{{ 'Save Settings'|t('forms-processor') }}">
+</div>
+{% endblock %}
+
+{% block content %}
+<input type="hidden" name="action" value="forms-processor/settings/save">
+{{ redirectInput('forms-processor/settings') }}
+
+{# ── Email Sender ─────────────────────────────────────────────────────────── #}
+<div id="email-sender" class="flex-fields">
+    <h2>{{ 'Email Sender'|t('forms-processor') }}</h2>
+    <p class="light">{{ 'Default sender configuration. Override per form type where needed.'|t('forms-processor') }}</p>
+
+    <div class="field">
+        <div class="heading"><label for="fromEmail">{{ 'From Email'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="fromEmail" type="email" name="fromEmail" class="text fullwidth"
+                   value="{{ settings.fromEmail }}" placeholder="estimates@yoursite.com">
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="heading"><label for="fromName">{{ 'From Name'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="fromName" type="text" name="fromName" class="text fullwidth"
+                   value="{{ settings.fromName }}" placeholder="Your Company">
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="heading"><label for="replyTo">{{ 'Reply-To Email'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="replyTo" type="email" name="replyTo" class="text fullwidth"
+                   value="{{ settings.replyTo }}" placeholder="info@yoursite.com">
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="heading"><label for="bcc">{{ 'Default BCC'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="bcc" type="email" name="bcc" class="text fullwidth"
+                   value="{{ settings.bcc }}" placeholder="info@yoursite.com">
+        </div>
+        <div class="instructions"><p>{{ 'A copy of every outbound email will be sent here.'|t('forms-processor') }}</p></div>
+    </div>
+</div>
+
+<hr>
+
+{# ── PDF Defaults ─────────────────────────────────────────────────────────── #}
+<div id="pdf-defaults">
+    <h2>{{ 'PDF Defaults'|t('forms-processor') }}</h2>
+    <p class="light">{{ 'Default paper settings. Override per form type via the PDF template record.'|t('forms-processor') }}</p>
+
+    <div class="field">
+        <div class="heading"><label for="paperSize">{{ 'Paper Size'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <div class="select">
+                <select id="paperSize" name="paperSize">
+                    {% for size in ['A4', 'A3', 'Letter', 'Legal'] %}
+                        <option value="{{ size }}" {{ settings.paperSize == size ? 'selected' }}>{{ size }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="heading"><label for="margins">{{ 'Margins (mm)'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="margins" type="text" name="margins" class="text"
+                   value="{{ settings.margins|join(',') }}" placeholder="10,10,10,10" style="width:150px">
+        </div>
+        <div class="instructions"><p>{{ 'Top, right, bottom, left — comma-separated (e.g. 30,10,18,10).'|t('forms-processor') }}</p></div>
+    </div>
+</div>
+
+<hr>
+
+{# ── Rate Limiting ────────────────────────────────────────────────────────── #}
+<div id="rate-limits">
+    <h2>{{ 'Rate Limiting'|t('forms-processor') }}</h2>
+    <p class="light">{{ 'Default limits applied to all form types. Override per form type as needed.'|t('forms-processor') }}</p>
+
+    <div class="field">
+        <div class="heading"><label for="rateLimitMax">{{ 'Max Submissions'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="rateLimitMax" type="number" name="rateLimitMax" class="text"
+                   value="{{ settings.rateLimitMax }}" min="1" max="1000" style="width:100px">
+        </div>
+        <div class="instructions"><p>{{ 'Maximum submissions per IP per window.'|t('forms-processor') }}</p></div>
+    </div>
+
+    <div class="field">
+        <div class="heading"><label for="rateLimitWindow">{{ 'Window (seconds)'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="rateLimitWindow" type="number" name="rateLimitWindow" class="text"
+                   value="{{ settings.rateLimitWindow }}" min="60" style="width:120px">
+        </div>
+        <div class="instructions"><p>{{ '3600 = 1 hour. 86400 = 1 day.'|t('forms-processor') }}</p></div>
+    </div>
+</div>
+
+<hr>
+
+{# ── Paths ────────────────────────────────────────────────────────────────── #}
+<div id="paths">
+    <h2>{{ 'Storage'|t('forms-processor') }}</h2>
+
+    <div class="field">
+        <div class="heading"><label for="attachmentTempDir">{{ 'PDF Temp Directory'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="attachmentTempDir" type="text" name="attachmentTempDir" class="text fullwidth"
+                   value="{{ settings.attachmentTempDir }}" placeholder="@storage/runtime/pdf-attachments">
+        </div>
+        <div class="instructions"><p>{{ 'Craft alias or absolute path. Used when PDFs need to be temporarily stored before attaching.'|t('forms-processor') }}</p></div>
+    </div>
+</div>
+{% endblock %}

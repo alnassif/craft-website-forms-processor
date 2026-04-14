@@ -1,0 +1,74 @@
+{% extends 'forms-processor/_layouts/cp' %}
+
+{% set title = 'Submissions' %}
+{% set selectedSubnavItem = 'submissions' %}
+
+{% block content %}
+{# Form type tabs #}
+{% if formTypes|length %}
+<div class="tabs">
+    <ul class="tab-list" role="tablist">
+        {% for ft in formTypes %}
+        <li>
+            <a href="{{ url('forms-processor/submissions/' ~ ft.id) }}"
+               class="{{ currentFormType and currentFormType.id == ft.id ? 'sel' }}"
+               role="tab">
+                {{ ft.name }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if submissions|length %}
+<table class="data fullwidth collapsible">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>{{ 'Name'|t('forms-processor') }}</th>
+            <th>{{ 'Email'|t('forms-processor') }}</th>
+            <th>{{ 'Phone'|t('forms-processor') }}</th>
+            <th>{{ 'Slate ID'|t('forms-processor') }}</th>
+            <th>{{ 'Status'|t('forms-processor') }}</th>
+            <th>{{ 'Date'|t('forms-processor') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sub in submissions %}
+        <tr>
+            <td class="light">{{ sub.id }}</td>
+            <td>{{ sub.contactName ?: '—' }}</td>
+            <td>
+                {% if sub.contactEmail %}
+                    <a href="mailto:{{ sub.contactEmail }}">{{ sub.contactEmail }}</a>
+                {% else %}—{% endif %}
+            </td>
+            <td>{{ sub.contactPhone ?: '—' }}</td>
+            <td>
+                {% if sub.slateSubmissionId %}
+                    <code class="light">{{ sub.slateSubmissionId }}</code>
+                {% else %}—{% endif %}
+            </td>
+            <td>
+                {% if sub.status == 'sent' %}
+                    <span class="status on"></span> {{ 'Sent'|t('forms-processor') }}
+                {% elseif sub.status == 'failed' %}
+                    <span class="status off"></span> {{ 'Failed'|t('forms-processor') }}
+                {% else %}
+                    <span class="status"></span> {{ 'Pending'|t('forms-processor') }}
+                {% endif %}
+            </td>
+            <td class="light">{{ sub.dateCreated|date('d M Y H:i') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elseif currentFormType %}
+<p class="zilch">{{ 'No submissions yet for {name}.'|t('forms-processor', {name: currentFormType.name}) }}</p>
+{% else %}
+<p class="zilch">{{ 'No form types configured.'|t('forms-processor') }}
+    <a href="{{ url('forms-processor/form-types/new') }}">{{ 'Create one'|t('forms-processor') }}</a>.
+</p>
+{% endif %}
+{% endblock %}

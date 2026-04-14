@@ -1,0 +1,188 @@
+{% extends 'forms-processor/_layouts/cp' %}
+
+{% set title = isNew ? 'New PDF Template'|t('forms-processor') : template.name %}
+{% set selectedSubnavItem = 'pdf-templates' %}
+{% set fullPageForm = true %}
+
+{% block head %}
+{{ parent() }}
+{# CodeMirror — loaded from Craft's built-in CP assets #}
+<style>
+.CodeMirror { height: 360px; font-size: 12px; border: 1px solid #d9dfe6; border-radius: 4px; }
+.CodeMirror-scroll { min-height: 360px; }
+.fp-preview-bar { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.fp-preview-iframe { width: 100%; height: 700px; border: 1px solid #d9dfe6; border-radius: 4px; margin-top: 12px; background: #f9f9f9; }
+</style>
+{% endblock %}
+
+{% block actionButton %}
+<div class="btngroup submit">
+    <input type="submit" class="btn submit" value="{{ 'Save'|t('app') }}">
+</div>
+{% endblock %}
+
+{% block content %}
+<input type="hidden" name="action" value="forms-processor/pdf-templates/save">
+{% if not isNew %}<input type="hidden" name="id" value="{{ template.id }}">{% endif %}
+{{ redirectInput('forms-processor/pdf-templates/' ~ (isNew ? 'new' : template.id)) }}
+
+{# ── Name + paper ─────────────────────────────────────────────────────────── #}
+<div class="field">
+    <div class="heading"><label for="name" class="required">{{ 'Template Name'|t('forms-processor') }}</label></div>
+    <div class="input ltr">
+        <input id="name" type="text" name="name" class="text fullwidth"
+               value="{{ template.name }}" autofocus placeholder="Tile Estimate PDF">
+    </div>
+</div>
+
+<div class="flex">
+    <div class="field" style="margin-right:24px">
+        <div class="heading"><label for="paperSize">{{ 'Paper Size'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <div class="select">
+                <select id="paperSize" name="paperSize">
+                    {% for size in ['A4', 'A3', 'Letter', 'Legal'] %}
+                        <option value="{{ size }}" {{ template.paperSize == size ? 'selected' }}>{{ size }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="field">
+        <div class="heading"><label for="margins">{{ 'Margins (mm)'|t('forms-processor') }}</label></div>
+        <div class="input ltr">
+            <input id="margins" type="text" name="margins" class="text code"
+                   value="{{ template.margins|join(',') }}" placeholder="30,10,18,10" style="width:130px">
+        </div>
+        <div class="instructions"><p>{{ 'Top, right, bottom, left'|t('forms-processor') }}</p></div>
+    </div>
+</div>
+
+<hr>
+
+{# ── Twig editors ─────────────────────────────────────────────────────────── #}
+<h2>{{ 'PDF Body'|t('forms-processor') }}</h2>
+<p class="light">{{ 'Full HTML document with CSS. Variables: <code>data</code>, <code>contact</code>, <code>currency</code>, <code>formattedDate</code>.'|t('forms-processor')|raw }}</p>
+
+<div class="field">
+    <textarea id="bodyTwig" name="bodyTwig" class="text code fullwidth" rows="20"
+              style="font-family:monospace;font-size:12px;display:none">{{ template.bodyTwig }}</textarea>
+    <div id="bodyTwig-editor"></div>
+</div>
+
+<h2>{{ 'Page Header'|t('forms-processor') }}</h2>
+<p class="light">{{ 'Repeating page header. <strong>Inline styles only</strong> — Puppeteer sandboxes this template.'|t('forms-processor')|raw }}</p>
+
+<div class="field">
+    <textarea id="headerTwig" name="headerTwig" class="text code fullwidth" rows="8"
+              style="font-family:monospace;font-size:12px;display:none">{{ template.headerTwig }}</textarea>
+    <div id="headerTwig-editor"></div>
+</div>
+
+<h2>{{ 'Page Footer'|t('forms-processor') }}</h2>
+<p class="light">{{ 'Repeating page footer. <strong>Inline styles only.</strong> Use <code>.pageNumber</code> / <code>.totalPages</code> Puppeteer classes.'|t('forms-processor')|raw }}</p>
+
+<div class="field">
+    <textarea id="footerTwig" name="footerTwig" class="text code fullwidth" rows="8"
+              style="font-family:monospace;font-size:12px;display:none">{{ template.footerTwig }}</textarea>
+    <div id="footerTwig-editor"></div>
+</div>
+
+<hr>
+
+{# ── Sample data + preview ────────────────────────────────────────────────── #}
+<h2>{{ 'Sample Data'|t('forms-processor') }}</h2>
+<p class="light">{{ 'JSON object used when clicking "Preview PDF". Edit to match your real form payload.'|t('forms-processor') }}</p>
+
+<div class="field">
+    <textarea id="sampleData" name="sampleData" class="text code fullwidth" rows="14"
+              style="font-family:monospace;font-size:12px;display:none">{{ template.sampleData }}</textarea>
+    <div id="sampleData-editor"></div>
+</div>
+
+{% if not isNew %}
+<div class="fp-preview-bar">
+    <button type="button" id="fp-preview-btn" class="btn">
+        {{ 'Preview PDF'|t('forms-processor') }}
+    </button>
+    <span id="fp-preview-status" class="light" style="display:none">{{ 'Generating…'|t('forms-processor') }}</span>
+</div>
+<iframe id="fp-preview-iframe" class="fp-preview-iframe" style="display:none"></iframe>
+{% endif %}
+{% endblock %}
+
+{% block endBody %}
+{{ parent() }}
+<script>
+(function() {
+    // ── CodeMirror editors ────────────────────────────────────────────────────
+    function makeEditor(textareaId, editorId, mode) {
+        var ta = document.getElementById(textareaId);
+        var ed = document.getElementById(editorId);
+        if (!ta || !ed) return null;
+        if (typeof CodeMirror === 'undefined') {
+            // CodeMirror not loaded — fall back to raw textarea
+            ta.style.display = '';
+            ed.style.display = 'none';
+            return null;
+        }
+        var cm = CodeMirror(ed, {
+            value: ta.value,
+            mode: mode || 'htmlmixed',
+            theme: 'default',
+            lineNumbers: true,
+            lineWrapping: false,
+            tabSize: 2,
+            indentWithTabs: false,
+            extraKeys: { 'Ctrl-Space': 'autocomplete' },
+        });
+        // Sync back to textarea on change (for form submission)
+        cm.on('change', function() { ta.value = cm.getValue(); });
+        return cm;
+    }
+
+    makeEditor('bodyTwig',   'bodyTwig-editor',   'htmlmixed');
+    makeEditor('headerTwig', 'headerTwig-editor', 'htmlmixed');
+    makeEditor('footerTwig', 'footerTwig-editor', 'htmlmixed');
+    makeEditor('sampleData', 'sampleData-editor', 'application/json');
+
+    // ── PDF Preview ───────────────────────────────────────────────────────────
+    var previewBtn = document.getElementById('fp-preview-btn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', function() {
+            var status  = document.getElementById('fp-preview-status');
+            var iframe  = document.getElementById('fp-preview-iframe');
+            var csrfInput = document.querySelector('input[name="CRAFT_CSRF_TOKEN"]');
+
+            status.style.display = '';
+            iframe.style.display = 'none';
+
+            fetch('{{ actionUrl('forms-processor/pdf-templates/preview') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/pdf',
+                },
+                body: new URLSearchParams({
+                    id: '{{ template.id }}',
+                    CRAFT_CSRF_TOKEN: csrfInput ? csrfInput.value : '',
+                }),
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Generation failed (HTTP ' + res.status + ')');
+                return res.blob();
+            })
+            .then(function(blob) {
+                var url = URL.createObjectURL(blob);
+                iframe.src = url;
+                iframe.style.display = '';
+                status.style.display = 'none';
+            })
+            .catch(function(err) {
+                status.textContent = err.message;
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

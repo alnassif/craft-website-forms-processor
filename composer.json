@@ -1,0 +1,30 @@
+{
+    "name": "slateos/craft-forms-processor",
+    "description": "Craft CMS CP plugin — configurable form processor with PDF generation, email delivery, and Slate CMS integration.",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": ["craft", "cms", "craftcms", "craft-plugin", "forms", "pdf", "email", "slate"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Albert Nassif",
+            "homepage": "https://centrillion.com.au"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "slateos\\formsprocessor\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "Forms Processor",
+        "handle": "forms-processor",
+        "schemaVersion": "1.0.0",
+        "hasCpSettings": true,
+        "hasCpSection": true,
+        "class": "slateos\\formsprocessor\\FormsProcessor"
+    }
+}
