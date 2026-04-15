@@ -57,18 +57,29 @@ class SlateService extends Component
     /**
      * Attach a PDF URL to an existing Slate submission.
      */
-    public function attach(string $endpoint, string $apiKey, string $submissionId, string $pdfUrl): bool
-    {
+    public function attach(
+        string $endpoint,
+        string $apiKey,
+        string $submissionId,
+        string $pdfUrl,
+        string $filename = '',
+        int    $size     = 0
+    ): bool {
         if (empty($endpoint) || empty($apiKey) || empty($submissionId)) {
             return false;
         }
 
         $attachEndpoint = preg_replace('/\/submit$/', '/attach', $endpoint);
 
-        $result = $this->post($attachEndpoint, $apiKey, [
-            '_submissionId' => $submissionId,
-            'pdfUrl'        => $pdfUrl,
-        ]);
+        $payload = [
+            'submissionId' => $submissionId,
+            'pdfUrl'       => $pdfUrl,
+        ];
+
+        if ($filename !== '') { $payload['filename'] = $filename; }
+        if ($size > 0)        { $payload['size']     = $size; }
+
+        $result = $this->post($attachEndpoint, $apiKey, $payload);
 
         return $result !== null;
     }

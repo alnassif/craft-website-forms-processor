@@ -118,10 +118,12 @@ class ProcessEmailJob extends BaseJob
             );
 
             Craft::$app->getQueue()->push(new SlateAttachJob([
-                'slateEndpoint' => $this->slateEndpoint,
-                'slateApiKey'   => $this->slateApiKey,
-                'submissionId'  => $this->submissionId,
-                'pdfUrl'        => $pdfUrl,
+                'slateEndpoint'      => $this->slateEndpoint,
+                'slateApiKey'        => $this->slateApiKey,
+                'submissionId'       => $this->submissionId,
+                'pdfUrl'             => $pdfUrl,
+                'pdfFilename'        => $this->attachmentName,
+                'pdfToken'           => $this->pdfToken,
                 'submissionRecordId' => $this->submissionRecordId,
             ]));
         }

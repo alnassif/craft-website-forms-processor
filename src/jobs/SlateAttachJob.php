@@ -20,6 +20,8 @@ class SlateAttachJob extends BaseJob
     public string $slateApiKey         = '';
     public string $submissionId        = '';
     public string $pdfUrl              = '';
+    public string $pdfFilename         = '';
+    public string $pdfToken            = '';
     public int    $submissionRecordId  = 0;
 
     public function execute($queue): void
@@ -29,11 +31,24 @@ class SlateAttachJob extends BaseJob
             return;
         }
 
+        // Resolve file size from temp storage if token is available
+        $size = 0;
+        if ($this->pdfToken) {
+            $settings = FormsProcessor::$plugin->getSettings();
+            $base = Craft::getAlias($settings->attachmentTempDir ?: '@storage/runtime/pdf-attachments');
+            $path = rtrim($base, '/') . '/' . $this->pdfToken . '.pdf';
+            if (file_exists($path)) {
+                $size = (int) filesize($path);
+            }
+        }
+
         $success = FormsProcessor::$plugin->slate->attach(
             $this->slateEndpoint,
             $this->slateApiKey,
             $this->submissionId,
-            $this->pdfUrl
+            $this->pdfUrl,
+            $this->pdfFilename,
+            $size
         );
 
         if ($success) {
