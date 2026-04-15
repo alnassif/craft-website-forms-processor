@@ -36,14 +36,15 @@ class SlateService extends Component
         string $source,
         array  $contact,
         array  $data,
-        string $title = '',
-        string $url   = ''
+        string $title    = '',
+        string $url      = '',
+        array  $fieldsMap = []
     ): ?string {
         if (empty($endpoint) || empty($apiKey)) {
             return null;
         }
 
-        $payload = $this->buildSlatePayload($source, $contact, $data, $title, $url);
+        $payload = $this->buildSlatePayload($source, $contact, $data, $title, $url, $fieldsMap);
 
         $response = $this->post($endpoint, $apiKey, $payload);
 
@@ -123,36 +124,36 @@ class SlateService extends Component
     /**
      * Build the rich Slate v2 payload.
      *
-     * - Reserved underscore keys (_source, _title, _url, etc.) pass through as-is.
-     * - contact is sent both as top-level name/email scalars (for CP search) and
-     *   as a rich "object" field with all details.
-     * - Each data value is wrapped in { type, value } when it is an array.
-     *   Sequential arrays  → type "repeater"
-     *   Associative arrays → type "object"
-     *   Scalars            → passed through unchanged (Slate auto-detects type/label).
+     * fieldsMap per-field config (keyed by field name):
+     *   skip  bool    — omit this field entirely
+     *   label string  — human-readable label shown in Slate CP
+     *   type  string  — text|number|email|url|date|object|repeater
+     *                   (number also casts string values to numeric)
+     *
+     * Behaviour when no fieldsMap entry exists for a field:
+     *   - Arrays   → auto-typed as repeater (list) or object (assoc)
+     *   - Scalars  → pass through as-is; Slate auto-detects type and prettifies key
+     *   - Empty arrays → always skipped
+     *   - Underscore-prefixed keys → always skipped (internal fields)
      */
     private function buildSlatePayload(
         string $source,
         array  $contact,
         array  $data,
         string $title,
-        string $url
+        string $url,
+        array  $fieldsMap
     ): array {
         $payload = ['_source' => $source];
 
-        if ($title !== '') {
-            $payload['_title'] = $title;
-        }
+        if ($title !== '') { $payload['_title'] = $title; }
+        if ($url   !== '') { $payload['_url']   = $url; }
 
-        if ($url !== '') {
-            $payload['_url'] = $url;
-        }
-
-        // Top-level name + email for Slate CP quick search
+        // Top-level name + email scalars for Slate CP search/index
         if (!empty($contact['name']))  { $payload['name']  = $contact['name']; }
         if (!empty($contact['email'])) { $payload['email'] = $contact['email']; }
 
-        // Full contact as a rich object
+        // Full contact as a labelled object field
         if (!empty($contact)) {
             $payload['contact'] = [
                 'label' => 'Contact Details',
@@ -163,17 +164,39 @@ class SlateService extends Component
 
         // Data fields
         foreach ($data as $key => $value) {
-            // Reserved keys pass through unchanged
-            if (str_starts_with((string) $key, '_')) {
-                $payload[$key] = $value;
+            $strKey = (string) $key;
+            $map    = $fieldsMap[$strKey] ?? null;
+
+            // Always skip underscore-prefixed internal keys and explicitly skipped fields
+            if (str_starts_with($strKey, '_') || ($map['skip'] ?? false)) {
+                continue;
+            }
+
+            // Always skip empty arrays — they add noise with no value
+            if (is_array($value) && empty($value)) {
                 continue;
             }
 
             if (is_array($value)) {
-                $type = array_is_list($value) ? 'repeater' : 'object';
-                $payload[$key] = ['type' => $type, 'value' => $value];
+                $type  = $map['type'] ?? (array_is_list($value) ? 'repeater' : 'object');
+                $field = ['type' => $type, 'value' => $value];
+                if ($map['label'] ?? '') { $field['label'] = $map['label']; }
+                $payload[$strKey] = $field;
             } else {
-                $payload[$key] = $value;
+                // Cast to number if configured and value is numeric
+                if (($map['type'] ?? '') === 'number' && is_numeric($value)) {
+                    $value = $value + 0;
+                }
+
+                if ($map) {
+                    // Has fieldsMap entry — wrap as rich field
+                    $field = ['value' => $value];
+                    if ($map['label'] ?? '') { $field['label'] = $map['label']; }
+                    if ($map['type']  ?? '') { $field['type']  = $map['type']; }
+                    $payload[$strKey] = $field;
+                } else {
+                    $payload[$strKey] = $value;
+                }
             }
         }
 

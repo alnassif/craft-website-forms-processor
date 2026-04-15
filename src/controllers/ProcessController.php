@@ -165,6 +165,8 @@ class ProcessController extends Controller
             // _url: use caller-supplied value, otherwise the HTTP referer
             $slateUrl = $data['_url'] ?? (Craft::$app->getRequest()->getReferrer() ?? '');
 
+            $fieldsMap = json_decode($formType->fieldsMap ?: '{}', true) ?: [];
+
             $submissionId = FormsProcessor::$plugin->slate->submit(
                 $formType->slateEndpoint,
                 $formType->slateApiKey,
@@ -172,7 +174,8 @@ class ProcessController extends Controller
                 $contact,
                 $data,
                 $slateTitle,
-                $slateUrl
+                $slateUrl,
+                $fieldsMap
             ) ?? '';
         }
 
