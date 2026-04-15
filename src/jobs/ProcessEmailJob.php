@@ -114,7 +114,7 @@ class ProcessEmailJob extends BaseJob
         if ($this->pdfToken && $this->submissionId && $this->slateEndpoint) {
             $pdfUrl = \craft\helpers\UrlHelper::actionUrl(
                 'forms-processor/process/pdf',
-                ['token' => $this->pdfToken]
+                ['pdfToken' => $this->pdfToken]
             );
 
             Craft::$app->getQueue()->push(new SlateAttachJob([

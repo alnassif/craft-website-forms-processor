@@ -254,13 +254,14 @@ class ProcessController extends Controller
     }
 
     // =========================================================================
-    // GET /actions/forms-processor/process/pdf?token=xxx
+    // GET /actions/forms-processor/process/pdf?pdfToken=xxx
     // Serves a stored PDF for Slate to fetch by URL.
+    // Note: 'token' is reserved by Craft for preview tokens; use 'pdfToken'.
     // =========================================================================
 
     public function actionPdf(): Response
     {
-        $token = Craft::$app->getRequest()->getRequiredQueryParam('token');
+        $token = Craft::$app->getRequest()->getRequiredQueryParam('pdfToken');
 
         // Sanitise — token must be alphanumeric/underscores only
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $token)) {
